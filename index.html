@@ -789,58 +789,100 @@
   var currentEditTransactionId = null;
   var charts = {}; // To hold chart instances
   
- // --- DOM ELEMENT SELECTORS ---
-var loadingOverlay   = document.getElementById('loading-overlay');
-var transactionForm  = document.getElementById('transaction-form');
-var categoryForm     = document.getElementById('category-form');
-var transactionsList = document.getElementById('transactions-list');
-var aiInputForm      = document.getElementById('ai-input-form');
-var investmentAIForm = document.getElementById('investment-ai-input-form');
-var investmentForm   = document.getElementById('investment-form');
-var pasteBtn         = document.getElementById('paste-from-clipboard-btn');
-var suggestIconBtn   = document.getElementById('suggest-icon-btn');
-var generateBudgetBtn= document.getElementById('generate-budget-btn');
-var smartSummaryBtn  = document.getElementById('smart-summary-btn');
-var scanReceiptBtn   = document.getElementById('scan-receipt-btn');
-var voiceInputBtn    = document.getElementById('voice-input-btn');
+// --- DOM ELEMENT SELECTORS (استبدل الجزء القديم بهذا كله) ---
+var loadingOverlay    = document.getElementById('loading-overlay');
+var transactionForm   = document.getElementById('transaction-form');
+var categoryForm      = document.getElementById('category-form');
+var transactionsList  = document.getElementById('transactions-list');
+var aiInputForm       = document.getElementById('ai-input-form');
+var investmentAIForm  = document.getElementById('investment-ai-input-form');
+var investmentForm    = document.getElementById('investment-form');
+var pasteBtn          = document.getElementById('paste-from-clipboard-btn');
+var suggestIconBtn    = document.getElementById('suggest-icon-btn');
+var generateBudgetBtn = document.getElementById('generate-budget-btn');
+var smartSummaryBtn   = document.getElementById('smart-summary-btn');
+var scanReceiptBtn    = document.getElementById('scan-receipt-btn');
+var voiceInputBtn     = document.getElementById('voice-input-btn');
 
-// --- Paste from Clipboard with Auto Payment Detection ---
+// --- Paste from Clipboard with Smart Payment Detection ---
+// يقرأ النص من الكليب بورد، يملأ الوصف/المبلغ، ويختار وسيلة الدفع تلقائياً
 if (pasteBtn) {
   pasteBtn.addEventListener("click", async () => {
     try {
-      const text = await navigator.clipboard.readText();
-      if (!text) return;
+      const text = (await navigator.clipboard.readText()) || "";
+      if (!text.trim()) return;
 
-      // الوصف
-      var descInput = document.getElementById("transaction-description");
-      if (descInput) descInput.value = text;
+      // ضع النص في حقل الوصف (إن وجد)
+      const descEl = document.getElementById("transaction-description");
+      if (descEl) descEl.value = text.trim();
 
-      // المبلغ
-      var amountMatch = text.match(/(\d+[.,]?\d*)/);
+      // احصل على أول قيمة رقمية تبدو كمبلغ (يدعم 1,234.56 و 1234.56 و 115.00 و 182)
+      const amountMatch = text.match(/(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)|\d+(?:[.,]\d+)?)/);
       if (amountMatch) {
-        var amountInput = document.getElementById("transaction-amount");
-        if (amountInput) amountInput.value = amountMatch[1].replace(",", ".");
+        const amountEl = document.getElementById("transaction-amount");
+        if (amountEl) amountEl.value = amountMatch[1].replace(/,/g, '').replace(',', '.');
       }
 
-      // وسيلة الدفع أوتوماتيك
-      var paymentSelect = document.getElementById("payment-method");
-      if (paymentSelect) {
-        if (/SNB/i.test(text) || /الأهلي/i.test(text)) {
-          paymentSelect.value = "snb-card";
-        } else if (/ENBD/i.test(text) || /الإمارات/i.test(text)) {
-          paymentSelect.value = "enbd-card";
-        } else if (/MADA/i.test(text) || /مدى/i.test(text) || /حساب/i.test(text)) {
-          paymentSelect.value = "mada-bank";
-        } else if (/CASH/i.test(text) || /نقد/i.test(text)) {
-          paymentSelect.value = "cash";
-        } else if (/Tabby/i.test(text) || /تابي/i.test(text)) {
-          paymentSelect.value = "tabby-bnpl";
-        } else if (/Tamara/i.test(text) || /تمارا/i.test(text)) {
-          paymentSelect.value = "tamara-bnpl";
+      // تحليل التاريخ المحتمل (إن وُجد بصيغة YYYY-MM-DD أو DD/MM/YY أو DD/MM/YYYY)
+      const dateMatch = text.match(/(\d{4}-\d{2}-\d{2})|(\d{2}\/\d{2}\/\d{2,4})/);
+      if (dateMatch) {
+        const dateEl = document.getElementById("transaction-date");
+        if (dateEl) {
+          let raw = dateMatch[0];
+          // تحويل 01/09/25 إلى 2025-09-01 (افتراض 20xx لِـ yy)
+          if (/^\d{2}\/\d{2}\/\d{2}$/.test(raw)) {
+            const parts = raw.split('/');
+            const day = parts[0], month = parts[1], yy = parts[2];
+            const year = (yy.length === 2) ? ('20' + yy) : yy;
+            dateEl.value = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+          } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+            const parts = raw.split('/');
+            dateEl.value = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+          } else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+            dateEl.value = raw;
+          }
         }
       }
+
+      // --- ذكي: تحديد وسيلة الدفع ---
+      // نعتمد على كلمات مفتاحية عربية وإنجليزية وأنماط بطاقات (Visa/Master/Apple Pay/Mada/مدى)
+      const paymentSelect = document.getElementById("payment-method");
+      if (paymentSelect) {
+        const t = text.toLowerCase();
+
+        // أولوية لوجود كلمات محددة
+        if (/(enbd|emirates|الإمارات|visa|visa card|visa ****|visa card xx|visa)/i.test(text) ||
+            /pos purchase.*visa/i.test(text) ||
+            /visa card/i.test(text) ||
+            /emirates/i.test(text)) {
+          paymentSelect.value = "enbd-card";
+        } else if (/(snb|alahli|الأهلي|اهلي|إئتمانية|ائتمانية|credit card|apple pay).*?/i.test(text) ||
+                   /e?ahli/i.test(text) ||
+                   /إئتمانية/i.test(text)) {
+          paymentSelect.value = "snb-card";
+        } else if (/(mada|مدى|mada-pay|mada)/i.test(text) || /مدى-ابل|mada/i.test(text)) {
+          paymentSelect.value = "mada-bank";
+        } else if (/(tabby|تابي|bnpl.*tabby)/i.test(text)) {
+          paymentSelect.value = "tabby-bnpl";
+        } else if (/(tamara|تمارا|bnpl.*tamara)/i.test(text)) {
+          paymentSelect.value = "tamara-bnpl";
+        } else if (/(mastercard|master card|master|master.*card)/i.test(text)) {
+          // لو تبي تفرق بين master بنكي وبطاقة تقدر تضيف شروط أدق
+          paymentSelect.value = "enbd-card"; // افتراض: خليه ENBD أو عدّله حسب حاجتك
+        } else if (/(cash|نقد)/i.test(text)) {
+          paymentSelect.value = "cash";
+        } else {
+          // إذا ما عرفنا، نتركه كما هو (أو تختار قيمة افتراضية)
+          // paymentSelect.value = ""; // التعليق يعني لا تغيير
+        }
+      }
+
+      // اختياري: لو فيه زر لإضافة المعاملة مباشرة تقدر تفعّله هنا
+      // document.getElementById('transaction-form').dispatchEvent(new Event('submit'));
+
     } catch (err) {
-      console.error("فشل اللصق:", err);
+      console.error("فشل قراءة الكليب بورد أو معالجة النص:", err);
+      alert("فشل قراءة النص من الحافظة. تأكد من إعطاء الصلاحية للمتصفح.");
     }
   });
 }
@@ -2004,5 +2046,6 @@ if (pasteBtn) {
   </script>
   </body>
   </html>
+
 
 
