@@ -789,21 +789,62 @@
   var currentEditTransactionId = null;
   var charts = {}; // To hold chart instances
   
-  // --- DOM ELEMENT SELECTORS ---
-  var loadingOverlay = document.getElementById('loading-overlay');
-  var transactionForm = document.getElementById('transaction-form');
-  var categoryForm = document.getElementById('category-form');
-  var transactionsList = document.getElementById('transactions-list');
-  var aiInputForm = document.getElementById('ai-input-form');
-  var investmentAIForm = document.getElementById('investment-ai-input-form');
-  var investmentForm = document.getElementById('investment-form');
-  var pasteBtn = document.getElementById('paste-from-clipboard-btn');
-  var suggestIconBtn = document.getElementById('suggest-icon-btn');
-  var generateBudgetBtn = document.getElementById('generate-budget-btn');
-  var smartSummaryBtn = document.getElementById('smart-summary-btn');
-  var scanReceiptBtn = document.getElementById('scan-receipt-btn');
-  var voiceInputBtn = document.getElementById('voice-input-btn');
-  
+ // --- DOM ELEMENT SELECTORS ---
+var loadingOverlay   = document.getElementById('loading-overlay');
+var transactionForm  = document.getElementById('transaction-form');
+var categoryForm     = document.getElementById('category-form');
+var transactionsList = document.getElementById('transactions-list');
+var aiInputForm      = document.getElementById('ai-input-form');
+var investmentAIForm = document.getElementById('investment-ai-input-form');
+var investmentForm   = document.getElementById('investment-form');
+var pasteBtn         = document.getElementById('paste-from-clipboard-btn');
+var suggestIconBtn   = document.getElementById('suggest-icon-btn');
+var generateBudgetBtn= document.getElementById('generate-budget-btn');
+var smartSummaryBtn  = document.getElementById('smart-summary-btn');
+var scanReceiptBtn   = document.getElementById('scan-receipt-btn');
+var voiceInputBtn    = document.getElementById('voice-input-btn');
+
+// --- Paste from Clipboard with Auto Payment Detection ---
+if (pasteBtn) {
+  pasteBtn.addEventListener("click", async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text) return;
+
+      // الوصف
+      var descInput = document.getElementById("transaction-description");
+      if (descInput) descInput.value = text;
+
+      // المبلغ
+      var amountMatch = text.match(/(\d+[.,]?\d*)/);
+      if (amountMatch) {
+        var amountInput = document.getElementById("transaction-amount");
+        if (amountInput) amountInput.value = amountMatch[1].replace(",", ".");
+      }
+
+      // وسيلة الدفع أوتوماتيك
+      var paymentSelect = document.getElementById("payment-method");
+      if (paymentSelect) {
+        if (/SNB/i.test(text) || /الأهلي/i.test(text)) {
+          paymentSelect.value = "snb-card";
+        } else if (/ENBD/i.test(text) || /الإمارات/i.test(text)) {
+          paymentSelect.value = "enbd-card";
+        } else if (/MADA/i.test(text) || /مدى/i.test(text) || /حساب/i.test(text)) {
+          paymentSelect.value = "mada-bank";
+        } else if (/CASH/i.test(text) || /نقد/i.test(text)) {
+          paymentSelect.value = "cash";
+        } else if (/Tabby/i.test(text) || /تابي/i.test(text)) {
+          paymentSelect.value = "tabby-bnpl";
+        } else if (/Tamara/i.test(text) || /تمارا/i.test(text)) {
+          paymentSelect.value = "tamara-bnpl";
+        }
+      }
+    } catch (err) {
+      console.error("فشل اللصق:", err);
+    }
+  });
+}
+
   // --- INITIALIZATION ---
   function init() {
   Object.assign(window.app, {
