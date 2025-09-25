@@ -580,13 +580,11 @@
             return;
         }
         
-        // --- NEW LOGIC FOR BNPL (Buy Now, Pay Later) ---
         if (paymentMethod.includes('bnpl') && !currentEditTransactionId) {
             const installmentsCount = parseInt(document.getElementById('installments-count').value, 10);
             const firstPaymentSource = document.getElementById('bnpl-payment-source').value;
             const installmentAmount = totalAmount / installmentsCount;
 
-            // 1. Create the Installment Plan
             const newInstallmentPlan = {
                 id: `inst-${Date.now()}`,
                 provider: paymentMethod,
@@ -594,26 +592,25 @@
                 totalAmount: totalAmount,
                 installmentAmount: installmentAmount,
                 total: installmentsCount,
-                paid: 1, // First payment is made now
+                paid: 1, 
                 createdAt: date
             };
             state.installments.push(newInstallmentPlan);
 
-            // 2. Create the Transaction for the FIRST payment
             const firstPaymentTransaction = {
                 id: `trans-${Date.now()}`,
                 amount: installmentAmount,
                 date: date,
                 description: `الدفعة الأولى لـ: ${description}`,
-                paymentMethod: firstPaymentSource, // Source of the payment
+                paymentMethod: firstPaymentSource,
                 type: 'bnpl-payment',
-                categoryId: categoryId, // Original category
+                categoryId: categoryId,
                 isInstallmentPayment: true,
                 installmentId: newInstallmentPlan.id
             };
             state.transactions.push(firstPaymentTransaction);
 
-        } else { // --- EXISTING LOGIC FOR OTHER TRANSACTIONS & EDITS ---
+        } else { 
             const formData = {
                 amount: totalAmount,
                 date,
@@ -626,8 +623,6 @@
             if (currentEditTransactionId) {
                 const index = state.transactions.findIndex(t => t.id === currentEditTransactionId);
                 if (index !== -1) {
-                    // Note: Editing BNPL transactions is complex and not fully handled here.
-                    // This primarily handles standard transaction edits.
                     state.transactions[index] = { ...state.transactions[index], ...formData };
                 }
             } else {
@@ -641,7 +636,7 @@
         document.getElementById('transaction-date').value = new Date().toISOString().split('T')[0];
         currentEditTransactionId = null;
         document.querySelector('#transaction-form button[type="submit"]').textContent = '✨ إضافة ✨';
-        handleTransactionTypeChange(); // Reset form fields visibility
+        handleTransactionTypeChange();
         showTab('summary');
     }
 
@@ -650,8 +645,6 @@
             confirmText: 'نعم، حذف',
             onConfirm: () => {
                 state.transactions = state.transactions.filter(t => t.id !== id);
-                // Future improvement: Add logic to handle deleting an installment payment,
-                // which might involve adjusting the 'paid' count on the installment plan.
                 saveStateToFirebase();
                 return true;
             }
@@ -718,50 +711,48 @@
     }
 
     function handlePayInstallment(installmentId) {
-        const installment = findInstallmentById(installmentId);
-        if (!installment || installment.paid >= installment.total) return;
+        const installment = findInstallmentById(installmentId);
+        if (!installment || installment.paid >= installment.total) return;
 
-        const body = `
-            <p class="mb-4">اختر مصدر الدفع لسداد قسط "${installment.description}" بقيمة ${formatCurrency(installment.installmentAmount)} ريال.</p>
-            <div>
-                <label for="installment-payment-source" class="block text-sm font-medium text-slate-300 mb-2">مصدر الدفع</label>
-                <select id="installment-payment-source" class="w-full p-3">
-                    <option value="mada-bank">🏦 مدى/حساب بنكي</option>
-                    <option value="cash">💵 نقدي</option>
-                    <option value="snb-card">💳 SNB الأهلي (بطاقة)</option>
-                    <option value="enbd-card">💳 ENBD الإمارات (بطاقة)</option>
-                </select>
-            </div>
-        `;
+        const body = `
+            <p class="mb-4">اختر مصدر الدفع لسداد قسط "${installment.description}" بقيمة ${formatCurrency(installment.installmentAmount)} ريال.</p>
+            <div>
+                <label for="installment-payment-source" class="block text-sm font-medium text-slate-300 mb-2">مصدر الدفع</label>
+                <select id="installment-payment-source" class="w-full p-3">
+                    <option value="mada-bank">🏦 مدى/حساب بنكي</option>
+                    <option value="cash">💵 نقدي</option>
+                    <option value="snb-card">💳 SNB الأهلي (بطاقة)</option>
+                    <option value="enbd-card">💳 ENBD الإمارات (بطاقة)</option>
+                </select>
+            </div>
+        `;
 
-        // السطر التالي هو الذي تم تصحيحه
-        showModal('سداد قسط', body, {
-            confirmText: 'تأكيد الدفع',
-            onConfirm: () => {
-                const paymentSource = document.getElementById('installment-payment-source').value;
-                
-                const billCategory = state.categories.find(c => c.name === 'سداد فواتير' || c.name === '💳 سداد فواتير');
-                const categoryId = billCategory ? billCategory.id : state.categories.find(c => c.name === 'أخرى')?.id || '';
+        showModal('سداد قسط', body, {
+            confirmText: 'تأكيد الدفع',
+            onConfirm: () => {
+                const paymentSource = document.getElementById('installment-payment-source').value;
+                const billCategory = state.categories.find(c => c.name === 'سداد فواتير' || c.name === '💳 سداد فواتير');
+                const categoryId = billCategory ? billCategory.id : state.categories.find(c => c.name === 'أخرى')?.id || '';
 
-                const transaction = {
-                    id: 'trans-' + Date.now(),
-                    amount: installment.installmentAmount,
-                    date: new Date().toISOString().split('T')[0],
-                    description: `سداد القسط ${installment.paid + 1} لـ: ${installment.description}`,
-                    paymentMethod: paymentSource,
-                    type: 'bnpl-payment',
-                    categoryId: categoryId,
-                    isInstallmentPayment: true,
-                    installmentId: installmentId,
-                };
+                const transaction = {
+                    id: 'trans-' + Date.now(),
+                    amount: installment.installmentAmount,
+                    date: new Date().toISOString().split('T')[0],
+                    description: `سداد القسط ${installment.paid + 1} لـ: ${installment.description}`,
+                    paymentMethod: paymentSource,
+                    type: 'bnpl-payment',
+                    categoryId: categoryId,
+                    isInstallmentPayment: true,
+                    installmentId: installmentId,
+                };
 
-                state.transactions.push(transaction);
-                installment.paid += 1;
-                saveStateToFirebase();
-                return true; 
-            }
-        });
-    }
+                state.transactions.push(transaction);
+                installment.paid += 1;
+                saveStateToFirebase();
+                return true; 
+            }
+        });
+    }
     
     function handleDeleteCategory(id) {
         const isUsed = state.transactions.some(t => t.categoryId === id);
@@ -788,7 +779,7 @@
         userInput.value = '';
         showTypingIndicator(true, 'ai-chat-box');
         try {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             const filteredData = getFilteredTransactions();
             const requestBody = {
                 systemInstruction: { parts: [{ text: GEMINI_PROMPTS.FINANCIAL_ANALYST }] },
@@ -836,7 +827,7 @@
         showLoadingOverlay(true, "جاري التحليل الذكي...");
         try {
             const categoriesForAI = state.categories.map(c => ({ id: c.id, name: c.name }));
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             const requestBody = {
                 systemInstruction: { parts: [{ text: GEMINI_PROMPTS.PASTE_ANALYZER }] },
                 contents: [{ parts: [{ text: text }, {text: `Available Categories: ${JSON.stringify(categoriesForAI)}`}] }],
@@ -872,7 +863,7 @@
         }
         showLoadingOverlay(true, "جاري البحث عن أيقونة...");
         try {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             const requestBody = {
                 systemInstruction: { parts: [{ text: GEMINI_PROMPTS.ICON_SUGGESTER }] },
                 contents: [{ parts: [{ text: `Category: ${categoryName}` }] }]
@@ -904,7 +895,7 @@
             if (getFilteredTransactions().length < 1) {
                 throw new Error("لا توجد بيانات كافية في هذه الفترة لإنشاء ملخص.");
             }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             const requestBody = {
                 systemInstruction: { parts: [{ text: GEMINI_PROMPTS.SMART_SUMMARY_GENERATOR }] },
                 contents: [{ parts: [{ text: `Financial Data: ${JSON.stringify(calc)}` }] }]
@@ -941,7 +932,7 @@
             if (recentTransactions.length < 5) {
                 throw new Error("لا توجد بيانات كافية عن إنفاقك لإنشاء خطة دقيقة. يرجى إضافة 5 معاملات على الأقل.");
             }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             const userPrompt = `Here is my financial data. Please create a budget plan for me. My total monthly budget is: ${totalBudget} SAR. My spending categories are: ${JSON.stringify(state.categories)}. My transactions from the last 60 days are: ${JSON.stringify(recentTransactions)}`;
             const requestBody = {
                 systemInstruction: { parts: [{ text: GEMINI_PROMPTS.BUDGET_PLANNER }] },
@@ -1002,7 +993,6 @@
             calc.transactionStats.total += t.amount;
             if (t.amount > calc.transactionStats.max) calc.transactionStats.max = t.amount;
             
-            // This switch handles the main report figures for the selected period
             switch (t.type) {
                 case 'income':
                     calc.totalIncome += t.amount;
@@ -1011,9 +1001,6 @@
                 case 'expense':
                     calc.totalExpenses += t.amount;
                     if (t.paymentMethod.includes('bnpl')) {
-                        // This case is for the initial BNPL purchase transaction which is now obsolete.
-                        // Kept for backward compatibility if old data exists.
-                        // The actual cost is now handled by 'bnpl-payment'.
                     } else if (t.paymentMethod === 'snb-card') {
                         calc.totalSnbExpenses += t.amount;
                     } else if (t.paymentMethod === 'enbd-card') {
@@ -1030,8 +1017,8 @@
                     calc.enbdPaymentsTotal += t.amount;
                     if (t.paymentMethod === 'mada-bank') calc.bankWithdrawals += t.amount;
                     break;
-                case 'bnpl-payment': // This is the new type for installment payments
-                    calc.totalExpenses += t.amount; // A BNPL payment is a true expense
+                case 'bnpl-payment':
+                    calc.totalExpenses += t.amount;
                     if (t.paymentMethod === 'mada-bank') calc.bankWithdrawals += t.amount;
                     if (t.paymentMethod === 'snb-card') calc.totalSnbExpenses += t.amount; 
                     if (t.paymentMethod === 'enbd-card') calc.totalEnbdExpenses += t.amount;
@@ -1049,26 +1036,22 @@
 
         calc.transactionStats.average = calc.transactionStats.count > 0 ? (calc.transactionStats.total / calc.transactionStats.count) : 0;
         
-        // This part calculates running balances up to the end of the selected period
         const allTransactionsUpToPeriodEnd = state.transactions.filter(t => new Date(t.date) <= getPeriodEndDate());
         let snbBalance = 0, enbdBalance = 0, bankBalance = 0;
 
         allTransactionsUpToPeriodEnd.forEach(t => {
-            // SNB Card Balance
             if (t.paymentMethod === 'snb-card' && (t.type === 'expense' || t.type === 'bnpl-payment')) {
                 snbBalance += t.amount;
             }
             if (t.type === 'snb-payment') {
                 snbBalance -= t.amount;
             }
-            // ENBD Card Balance
             if (t.paymentMethod === 'enbd-card' && (t.type === 'expense' || t.type === 'bnpl-payment')) {
                 enbdBalance += t.amount;
             }
             if (t.type === 'enbd-payment') {
                 enbdBalance -= t.amount;
             }
-            // Bank Balance
             if (t.paymentMethod === 'mada-bank') {
                 if (t.type === 'income' || t.type === 'investment-withdrawal') {
                     bankBalance += t.amount;
@@ -1112,7 +1095,7 @@
         userInput.value = '';
         showTypingIndicator(true, 'investment-ai-chat-box');
         try {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             const requestBody = { systemInstruction: { parts: [{ text: GEMINI_PROMPTS.INVESTMENT_COACH }] }, contents: [{ parts: [{ text: query }] }], };
             const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
             if (!response.ok) { const error = new Error(`API call failed with status: ${response.status}`); error.status = response.status; throw error; }
@@ -1200,7 +1183,6 @@
     function openEditTransactionModal(id) {
         const transaction = state.transactions.find(t => t.id === id);
         if (!transaction) return;
-        // Basic editing is enabled. Complex editing (like changing an installment payment) is not fully supported via this simple form.
         currentEditTransactionId = id;
         document.getElementById('transaction-amount').value = transaction.amount;
         document.getElementById('transaction-date').value = transaction.date;
@@ -1358,7 +1340,7 @@
         doc.save(`financial_report_${selectedYear}_${selectedMonth}.pdf`);
     }
 
-    // --- Render Functions for UI components ---
+    // --- Render Functions ---
     function renderSummary(calc) {
         document.getElementById('snb-current-balance').textContent = `${formatCurrency(calc.snb.balance)} ريال`;
         document.getElementById('snb-remaining-limit').textContent = `${formatCurrency(calc.snb.available)} ريال`;
@@ -1414,63 +1396,51 @@
         document.getElementById('bank-transactions-list').innerHTML = bankTransactions.map(t => { const isIncome = t.type === 'income'; const amountClass = isIncome ? 'text-emerald-400' : 'text-red-400'; const category = findCategoryById(t.categoryId); return `<tr class="border-b border-slate-700/50"><td class="p-3">${t.date}</td><td class="p-3">${getTransactionTypeName(t.type)}</td><td class="p-3 font-semibold ${amountClass} number-display">${isIncome ? '+' : '-'}${formatCurrency(t.amount)}</td><td class="p-3">${category ? `${category.icon} ${category.name}` : '-'}</td><td class="p-3 text-slate-400">${t.description || '-'}</td></tr>`; }).join('');
     }
 
-        function renderTransactionList() {
-        const searchTerm = document.getElementById('search-transactions').value.toLowerCase();
-        const filterMethod = document.getElementById('filter-payment-method').value;
-        const transactionsToDisplay = getFilteredTransactions().filter(t => { 
-            const descriptionMatch = t.description?.toLowerCase().includes(searchTerm) || false; 
-            const categoryObject = findCategoryById(t.categoryId); 
-            const categoryNameMatch = categoryObject?.name.toLowerCase().includes(searchTerm) || false; 
-            const matchesSearch = descriptionMatch || categoryNameMatch; 
-            const matchesFilter = !filterMethod || t.paymentMethod === filterMethod || t.type.replace('-payment', '-card') === filterMethod; 
-            return matchesSearch && matchesFilter; 
-        }).sort((a, b) => {
+    function renderTransactionList() {
+        const searchTerm = document.getElementById('search-transactions').value.toLowerCase();
+        const filterMethod = document.getElementById('filter-payment-method').value;
+        const transactionsToDisplay = getFilteredTransactions().filter(t => { 
+            const descriptionMatch = t.description?.toLowerCase().includes(searchTerm) || false; 
+            const categoryObject = findCategoryById(t.categoryId); 
+            const categoryNameMatch = categoryObject?.name.toLowerCase().includes(searchTerm) || false; 
+            const matchesSearch = descriptionMatch || categoryNameMatch; 
+            const matchesFilter = !filterMethod || t.paymentMethod === filterMethod || t.type.replace('-payment', '-card') === filterMethod; 
+            return matchesSearch && matchesFilter; 
+        }).sort((a, b) => {
             const dateComparison = new Date(b.date) - new Date(a.date);
             if (dateComparison !== 0) {
-                return dateComparison; // 1. الترتيب حسب التاريخ أولاً
+                return dateComparison;
             }
-            // 2. إذا كان التاريخ متساوياً، رتب حسب وقت الإضافة (الأحدث أولاً)
             return b.id.slice(6) - a.id.slice(6); 
         });
 
-        document.getElementById('transactions-list').innerHTML = transactionsToDisplay.map(t => { 
-            const category = findCategoryById(t.categoryId); 
-            const isIncome = t.type === 'income'; 
-            const isPayment = t.type.includes('payment'); 
-            const isInvestment = t.type.includes('investment'); 
-            const amountClass = isIncome || isPayment ? 'text-emerald-400' : 'text-red-400'; 
-            const sign = isIncome || isPayment ? '+' : '-'; 
-            return `<tr class="border-b border-slate-700/50 hover:bg-slate-700/20 text-sm"><td class="p-3">${t.date}</td><td class="p-3">${getPaymentMethodName(t.paymentMethod)}</td><td class="p-3">${getTransactionTypeName(t.type)}</td><td class="p-3 font-semibold ${isInvestment ? 'text-blue-400' : amountClass} number-display">${isInvestment ? ' ' : sign} ${formatCurrency(t.amount)} ريال</td><td class="p-3">${category ? `${category.icon} ${category.name}` : 'غير محدد'}</td><td class="p-3 text-slate-400 hidden sm:table-cell">${t.description || '-'}</td><td class="p-3 text-center"><button data-action="edit" data-id="${t.id}" class="text-slate-400 hover:text-white p-1">✏️</button><button data-action="delete" data-id="${t.id}" class="text-slate-400 hover:text-red-400 p-1">🗑️</button></td></tr>`; 
-        }).join('');
-    }
+        document.getElementById('transactions-list').innerHTML = transactionsToDisplay.map(t => { 
+            const category = findCategoryById(t.categoryId); 
+            const isIncome = t.type === 'income'; 
+            const isPayment = t.type.includes('payment'); 
+            const isInvestment = t.type.includes('investment'); 
+            const amountClass = isIncome || isPayment ? 'text-emerald-400' : 'text-red-400'; 
+            const sign = isIncome || isPayment ? '+' : '-'; 
+            return `<tr class="border-b border-slate-700/50 hover:bg-slate-700/20 text-sm"><td class="p-3">${t.date}</td><td class="p-3">${getPaymentMethodName(t.paymentMethod)}</td><td class="p-3">${getTransactionTypeName(t.type)}</td><td class="p-3 font-semibold ${isInvestment ? 'text-blue-400' : amountClass} number-display">${isInvestment ? ' ' : sign} ${formatCurrency(t.amount)} ريال</td><td class="p-3">${category ? `${category.icon} ${category.name}` : 'غير محدد'}</td><td class="p-3 text-slate-400 hidden sm:table-cell">${t.description || '-'}</td><td class="p-3 text-center"><button data-action="edit" data-id="${t.id}" class="text-slate-400 hover:text-white p-1">✏️</button><button data-action="delete" data-id="${t.id}" class="text-slate-400 hover:text-red-400 p-1">🗑️</button></td></tr>`; 
+        }).join('');
+    }
 
-    function renderInstallments() {
-        const listEl = document.getElementById('active-installments-list');
-        const activeInstallments = state.installments.filter(i => i.paid < i.total);
-        if (activeInstallments.length === 0) {
-            listEl.innerHTML = `<div class="md:col-span-2 text-center p-6 glass-card"><p class="text-slate-400">🎉 لا توجد أقساط نشطة حاليًا!</p></div>`;
-        } else {
-            listEl.innerHTML = activeInstallments.sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt)).map(i => {
+    function renderInstallments() {
+        const listEl = document.getElementById('active-installments-list');
+        const activeInstallments = state.installments.filter(i => i.paid < i.total);
+        if (activeInstallments.length === 0) {
+            listEl.innerHTML = `<div class="md:col-span-2 text-center p-6 glass-card"><p class="text-slate-400">🎉 لا توجد أقساط نشطة حاليًا!</p></div>`;
+        } else {
+            listEl.innerHTML = activeInstallments.sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt)).map(i => {
                 const remaining = i.total - i.paid; 
                 const progress = (i.paid / i.total) * 100; 
-                return `<div class="glass-card p-4">
-                    <div class="flex justify-between items-start mb-2">
-                        <div><h4 class="font-bold text-white">${i.description}</h4><p class="text-sm text-slate-400">${getPaymentMethodName(i.provider)}</p></div>
-                        <span class="font-bold text-violet-400 number-display">${formatCurrency(i.installmentAmount)} ريال/شهر</span>
-                    </div>
-                    <div class="w-full bg-slate-700 rounded-full h-2.5 mb-1"><div class="bg-violet-500 h-2.5 rounded-full" style="width: ${progress}%"></div></div>
-                    <div class="flex justify-between text-xs text-slate-400">
-                        <span>${i.paid} / ${i.total} مدفوع</span>
-                        <span>متبقي: <span class="font-semibold">${remaining}</span></span>
-                    </div>
-                    <div class="text-center mt-4"><button onclick="app.handlePayInstallment('${i.id}')" class="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors text-sm w-full sm:w-auto">دفع القسط التالي</button></div>
-                </div>`; 
+                return `<div class="glass-card p-4"><div class="flex justify-between items-start mb-2"><div><h4 class="font-bold text-white">${i.description}</h4><p class="text-sm text-slate-400">${getPaymentMethodName(i.provider)}</p></div><span class="font-bold text-violet-400 number-display">${formatCurrency(i.installmentAmount)} ريال/شهر</span></div><div class="w-full bg-slate-700 rounded-full h-2.5 mb-1"><div class="bg-violet-500 h-2.5 rounded-full" style="width: ${progress}%"></div></div><div class="flex justify-between text-xs text-slate-400"><span>${i.paid} / ${i.total} مدفوع</span><span>متبقي: <span class="font-semibold">${remaining}</span></span></div><div class="text-center mt-4"><button onclick="app.handlePayInstallment('${i.id}')" class="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors text-sm w-full sm:w-auto">دفع القسط التالي</button></div></div>`; 
             }).join('');
-        }
-        
-        const installmentTransactions = getFilteredTransactions()
-            .filter(t => t.paymentMethod.includes('-bnpl') || t.isInstallmentPayment)
-            .sort((a, b) => {
+        }
+        
+        const installmentTransactions = getFilteredTransactions()
+            .filter(t => t.paymentMethod.includes('-bnpl') || t.isInstallmentPayment)
+            .sort((a, b) => {
                 const dateComparison = new Date(b.date) - new Date(a.date);
                 if (dateComparison !== 0) {
                     return dateComparison;
@@ -1478,27 +1448,21 @@
                 return b.id.slice(6) - a.id.slice(6); 
             });
 
-        document.getElementById('installments-transactions-list').innerHTML = installmentTransactions.map(t => {
-            const isFirstPayment = t.type === 'expense' && t.paymentMethod.includes('bnpl'); // Old way
-            const isSubsequentPayment = t.isInstallmentPayment;
-            let providerName = '';
+        document.getElementById('installments-transactions-list').innerHTML = installmentTransactions.map(t => {
+            const isFirstPayment = t.type === 'expense' && t.paymentMethod.includes('bnpl');
+            const isSubsequentPayment = t.isInstallmentPayment;
+            let providerName = '';
 
-            if (isSubsequentPayment) {
-                const installment = findInstallmentById(t.installmentId);
-                providerName = `${getPaymentMethodName(installment?.provider)} <span class="text-slate-400">عبر</span> ${getPaymentMethodName(t.paymentMethod)}`;
-            } else if (isFirstPayment) {
-                providerName = getPaymentMethodName(t.paymentMethod);
-            }
+            if (isSubsequentPayment) {
+                const installment = findInstallmentById(t.installmentId);
+                providerName = `${getPaymentMethodName(installment?.provider)} <span class="text-slate-400">عبر</span> ${getPaymentMethodName(t.paymentMethod)}`;
+            } else if (isFirstPayment) {
+                providerName = getPaymentMethodName(t.paymentMethod);
+            }
 
-            return `<tr class="border-b border-slate-700/50">
-                <td class="p-3">${t.date}</td>
-                <td class="p-3">${providerName}</td>
-                <td class="p-3">${isSubsequentPayment ? 'سداد قسط' : 'شراء جديد'}</td>
-                <td class="p-3 text-red-400 font-semibold number-display">${formatCurrency(t.amount)} ريال</td>
-                <td class="p-3 text-slate-400">${t.description || '-'}</td>
-            </tr>`;
-        }).join('');
-    }
+            return `<tr class="border-b border-slate-700/50"><td class="p-3">${t.date}</td><td class="p-3">${providerName}</td><td class="p-3">${isSubsequentPayment ? 'سداد قسط' : 'شراء جديد'}</td><td class="p-3 text-red-400 font-semibold number-display">${formatCurrency(t.amount)} ريال</td><td class="p-3 text-slate-400">${t.description || '-'}</td></tr>`;
+        }).join('');
+    }
 
     function renderCategories() {
         document.getElementById('categories-list').innerHTML = state.categories.map(cat => `<div class="flex items-center justify-between p-2 bg-slate-700/50 rounded-lg"><span class="font-semibold text-slate-200">${cat.icon} ${cat.name}</span><div><button onclick="app.openEditCategoryModal('${cat.id}')" class="text-slate-400 hover:text-white p-1 text-sm">✏️</button><button onclick="app.handleDeleteCategory('${cat.id}')" class="text-slate-400 hover:text-red-400 p-1 text-sm">🗑️</button></div></div>`).join('');
@@ -1519,7 +1483,7 @@
         }
 
         const expenseTotals = expenses.reduce((acc, t) => {
-            const categoryId = t.categoryId || 'cat-7'; // Default to 'Other'
+            const categoryId = t.categoryId || 'cat-7';
             acc[categoryId] = (acc[categoryId] || 0) + t.amount;
             return acc;
         }, {});
@@ -1530,13 +1494,7 @@
             const category = findCategoryById(categoryId);
             const name = category ? `${category.icon} ${category.name}` : 'غير مصنف';
             const percentage = (total / totalExpenses) * 100;
-            return `<div class="flex items-center justify-between text-sm py-1">
-                <span class="w-28 truncate text-slate-300" title="${category ? category.name : ''}">${name}</span>
-                <div class="flex-1 bg-slate-700 rounded-full h-2.5 mx-2">
-                    <div class="bg-violet-500 h-2.5 rounded-full" style="width: ${percentage.toFixed(1)}%"></div>
-                </div>
-                <span class="font-bold text-slate-200 number-display w-24 text-left">${formatCurrency(total)} ريال</span>
-            </div>`;
+            return `<div class="flex items-center justify-between text-sm py-1"><span class="w-28 truncate text-slate-300" title="${category ? category.name : ''}">${name}</span><div class="flex-1 bg-slate-700 rounded-full h-2.5 mx-2"><div class="bg-violet-500 h-2.5 rounded-full" style="width: ${percentage.toFixed(1)}%"></div></div><span class="font-bold text-slate-200 number-display w-24 text-left">${formatCurrency(total)} ريال</span></div>`;
         }).join('');
     }
 
