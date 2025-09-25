@@ -385,6 +385,7 @@
     var state = getInitialState();
     var selectedYear, selectedMonth;
     var currentEditTransactionId = null;
+    const GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"; // CORRECTED MODEL
 
     const GEMINI_PROMPTS = {
       FINANCIAL_ANALYST: `You are an expert financial analyst assistant, "المحلل الذكي". You have full access to the user's financial data for a specific period. Your purpose is to provide detailed, insightful analysis and answer complex questions in Arabic based ONLY on the data provided for that period.
@@ -779,7 +780,7 @@
         userInput.value = '';
         showTypingIndicator(true, 'ai-chat-box');
         try {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
             const filteredData = getFilteredTransactions();
             const requestBody = {
                 systemInstruction: { parts: [{ text: GEMINI_PROMPTS.FINANCIAL_ANALYST }] },
@@ -787,7 +788,8 @@
             };
             const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
             if (!response.ok) {
-                const error = new Error(`API call failed with status: ${response.status}`);
+                const errorText = await response.text();
+                const error = new Error(`API call failed with status: ${response.status}. Response: ${errorText}`);
                 error.status = response.status;
                 throw error;
             }
@@ -799,6 +801,8 @@
             let userMessage = "حدث خطأ أثناء الاتصال بالمساعد الذكي. الرجاء المحاولة مرة أخرى.";
             if (error.status === 403) {
                 userMessage = "تم رفض الوصول. يرجى مراجعة إعدادات مفتاح API.";
+            } else if (error.status === 404) {
+                 userMessage = "حدث خطأ (404). يرجى التأكد من صحة إعدادات الخدمة والمفتاح.";
             }
             addMessageToChat(userMessage, 'ai', 'ai-chat-box');
         } finally {
@@ -827,7 +831,7 @@
         showLoadingOverlay(true, "جاري التحليل الذكي...");
         try {
             const categoriesForAI = state.categories.map(c => ({ id: c.id, name: c.name }));
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
             const requestBody = {
                 systemInstruction: { parts: [{ text: GEMINI_PROMPTS.PASTE_ANALYZER }] },
                 contents: [{ parts: [{ text: text }, {text: `Available Categories: ${JSON.stringify(categoriesForAI)}`}] }],
@@ -863,7 +867,7 @@
         }
         showLoadingOverlay(true, "جاري البحث عن أيقونة...");
         try {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
             const requestBody = {
                 systemInstruction: { parts: [{ text: GEMINI_PROMPTS.ICON_SUGGESTER }] },
                 contents: [{ parts: [{ text: `Category: ${categoryName}` }] }]
@@ -895,7 +899,7 @@
             if (getFilteredTransactions().length < 1) {
                 throw new Error("لا توجد بيانات كافية في هذه الفترة لإنشاء ملخص.");
             }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
             const requestBody = {
                 systemInstruction: { parts: [{ text: GEMINI_PROMPTS.SMART_SUMMARY_GENERATOR }] },
                 contents: [{ parts: [{ text: `Financial Data: ${JSON.stringify(calc)}` }] }]
@@ -932,7 +936,7 @@
             if (recentTransactions.length < 5) {
                 throw new Error("لا توجد بيانات كافية عن إنفاقك لإنشاء خطة دقيقة. يرجى إضافة 5 معاملات على الأقل.");
             }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
             const userPrompt = `Here is my financial data. Please create a budget plan for me. My total monthly budget is: ${totalBudget} SAR. My spending categories are: ${JSON.stringify(state.categories)}. My transactions from the last 60 days are: ${JSON.stringify(recentTransactions)}`;
             const requestBody = {
                 systemInstruction: { parts: [{ text: GEMINI_PROMPTS.BUDGET_PLANNER }] },
@@ -1095,7 +1099,7 @@
         userInput.value = '';
         showTypingIndicator(true, 'investment-ai-chat-box');
         try {
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
             const requestBody = { systemInstruction: { parts: [{ text: GEMINI_PROMPTS.INVESTMENT_COACH }] }, contents: [{ parts: [{ text: query }] }], };
             const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
             if (!response.ok) { const error = new Error(`API call failed with status: ${response.status}`); error.status = response.status; throw error; }
@@ -1508,3 +1512,4 @@
 </script>
 </body>
 </html>
+
