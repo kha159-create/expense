@@ -54,7 +54,6 @@
     .prose { color: var(--text-light); } .prose h4 { color: var(--text-bright); } .prose table { width: 100%; } .prose td, .prose th { border: 1px solid var(--border-dark); padding: 8px; } .prose thead { background-color: #334155; }
     .magical-button { background-color: var(--accent-purple); }
     .magical-button:hover { background-color: #7c3aed; }
-    .transaction-row:hover { background-color: rgba(51, 65, 85, 0.3); }
   </style>
 </head>
 <body class="bg-slate-900 min-h-screen">
@@ -100,8 +99,7 @@
         <button onclick="app.showTab('investment')" id="tab-investment" class="tab-btn px-4 py-2 mx-1 mb-1 rounded-lg font-semibold text-sm flex items-center gap-2">💹 الاستثمار</button>
         <button onclick="app.showTab('ai-assistant')" id="tab-ai-assistant" class="tab-btn px-4 py-2 mx-1 mb-1 rounded-lg font-semibold text-sm flex items-center gap-2">🤖 المحلل الذكي</button>
         <button onclick="app.showTab('transactions')" id="tab-transactions" class="tab-btn px-4 py-2 mx-1 mb-1 rounded-lg font-semibold text-sm flex items-center gap-2">💳 الحركات</button>
-        <button onclick="app.showTab('cards')" id="tab-cards" class="tab-btn px-4 py-2 mx-1 mb-1 rounded-lg font-semibold text-sm flex items-center gap-2">💳 إدارة البطاقات</button>
-        <button onclick="app.showTab('card-reports')" id="tab-card-reports" class="tab-btn px-4 py-2 mx-1 mb-1 rounded-lg font-semibold text-sm flex items-center gap-2">📝 تقارير البطاقات</button>
+        <button onclick="app.showTab('cards')" id="tab-cards" class="tab-btn px-4 py-2 mx-1 mb-1 rounded-lg font-semibold text-sm flex items-center gap-2">💳 البطاقات</button>
         <button onclick="app.showTab('bank')" id="tab-bank" class="tab-btn px-4 py-2 mx-1 mb-1 rounded-lg font-semibold text-sm flex items-center gap-2">🏦 البنك</button>
         <button onclick="app.showTab('installments')" id="tab-installments" class="tab-btn px-4 py-2 mx-1 mb-1 rounded-lg font-semibold text-sm flex items-center gap-2">📱 الأقساط</button>
         <button onclick="app.showTab('categories')" id="tab-categories" class="tab-btn px-4 py-2 mx-1 mb-1 rounded-lg font-semibold text-sm flex items-center gap-2">📂 الفئات</button>
@@ -234,7 +232,6 @@
                 <div><label class="block text-sm font-medium text-slate-300 mb-2">نوع الحركة</label><select id="transaction-type" class="w-full p-3"><option value="income">💰 دخل</option><option value="expense" selected>💸 مصاريف</option><option value="snb-payment">💳 سداد بطاقة SNB</option><option value="enbd-payment">💳 سداد بطاقة ENBD</option></select></div>
                 <div><label class="block text-sm font-medium text-slate-300 mb-2">المبلغ (ريال)</label><input type="number" id="transaction-amount" class="w-full p-3" placeholder="0.00" step="0.01" required></div>
                 <div><label class="block text-sm font-medium text-slate-300 mb-2">تاريخ المعاملة</label><input type="date" id="transaction-date" class="w-full p-3"></div>
-                <div id="posting-date-field" class="hidden"><label class="block text-sm font-medium text-slate-300 mb-2">تاريخ القيد (اختياري)</label><input type="date" id="posting-date" class="w-full p-3"></div>
                 <div><label class="block text-sm font-medium text-slate-300 mb-2">الفئة</label><select id="transaction-category" class="w-full p-3"></select></div>
                 <div class="lg:col-span-4"><label class="block text-sm font-medium text-slate-300 mb-2">الوصف</label><input type="text" id="transaction-description" class="w-full p-3" placeholder="وصف المعاملة" required></div>
                 
@@ -256,10 +253,9 @@
         <div class="glass-card p-6">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                 <h3 class="text-lg sm:text-xl font-bold text-white">📋 سجل المعاملات</h3>
-                <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto items-end">
-                    <input type="text" id="search-transactions" placeholder="🔍 البحث..." class="p-2 w-full md:w-48">
+                <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                    <input type="text" id="search-transactions" placeholder="🔍 البحث..." class="p-2 w-full md:w-64">
                     <select id="filter-payment-method" class="p-2"><option value="">كل الوسائل</option><option value="mada-bank">🏦 بنك</option><option value="cash">💵 نقدي</option><option value="snb-card">💳 SNB</option><option value="enbd-card">💳 ENBD</option><option value="tabby-bnpl">📱 تابي</option><option value="tamara-bnpl">📱 تمارا</option></select>
-                    <select id="filter-category" class="p-2"><option value="">كل الفئات</option></select>
                 </div>
             </div>
             <div class="overflow-x-auto">
@@ -272,59 +268,34 @@
     </div>
     <div id="cards-tab" class="tab-content hidden animate-fade-in">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div id="snb-card-details" class="glass-card p-6"></div>
-            <div id="enbd-card-details" class="glass-card p-6"></div>
+            <div class="glass-card p-6">
+                <div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-white">💳 بطاقة SNB الأهلي</h3><button onclick="app.openEditCardModal('snb')" class="text-sm bg-slate-700/50 hover:bg-slate-700 p-2 rounded-full transition">✏️ تعديل</button></div>
+                <div class="space-y-3">
+                    <div class="flex justify-between"><span>الرصيد المستحق:</span><span class="font-bold number-display" id="snb-balance-display">0 ريال</span></div>
+                    <div class="flex justify-between"><span>الحد الائتماني:</span><span class="font-bold number-display" id="snb-limit-display">26,000 ريال</span></div>
+                    <div class="flex justify-between"><span>الرصيد المتاح:</span><span class="font-bold number-display text-emerald-400" id="snb-available-display">0 ريال</span></div>
+                    <div class="flex justify-between"><span>يوم الاستحقاق:</span><span class="font-bold" id="snb-due-day-display">يوم 15</span></div>
+                    <div class="mt-4 bg-slate-700 rounded-full h-3"><div class="bg-blue-500 rounded-full h-3" id="snb-progress-bar" style="width: 0%"></div></div>
+                    <p class="text-xs text-slate-400 text-center">نسبة الاستخدام: <span id="snb-usage-display">0%</span></p>
+                </div>
+            </div>
+            <div class="glass-card p-6">
+                <div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-white">💳 بطاقة ENBD الإمارات</h3><button onclick="app.openEditCardModal('enbd')" class="text-sm bg-slate-700/50 hover:bg-slate-700 p-2 rounded-full transition">✏️ تعديل</button></div>
+                <div class="space-y-3">
+                    <div class="flex justify-between"><span>الرصيد المستحق:</span><span class="font-bold number-display" id="enbd-balance-display">0 ريال</span></div>
+                    <div class="flex justify-between"><span>الحد الائتماني:</span><span class="font-bold number-display" id="enbd-limit-display">10,000 ريال</span></div>
+                    <div class="flex justify-between"><span>الرصيد المتاح:</span><span class="font-bold number-display text-emerald-400" id="enbd-available-display">0 ريال</span></div>
+                    <div class="flex justify-between"><span>يوم الاستحقاق:</span><span class="font-bold" id="enbd-due-day-display">يوم 18</span></div>
+                    <div class="mt-4 bg-slate-700 rounded-full h-3"><div class="bg-red-500 rounded-full h-3" id="enbd-progress-bar" style="width: 0%"></div></div>
+                    <p class="text-xs text-slate-400 text-center">نسبة الاستخدام: <span id="enbd-usage-display">0%</span></p>
+                </div>
+            </div>
+        </div>
+        <div class="glass-card p-6">
+            <h3 class="text-xl font-bold mb-4 text-white">📋 تاريخ معاملات البطاقات</h3>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="border-b border-slate-700"><tr><th class="text-right p-3 font-semibold">التاريخ</th><th class="text-right p-3 font-semibold">البطاقة</th><th class="text-right p-3 font-semibold">نوع العملية</th><th class="text-right p-3 font-semibold">المبلغ</th><th class="text-right p-3 font-semibold">الوصف</th></tr></thead><tbody id="cards-transactions-list"></tbody></table></div>
         </div>
     </div>
-
-    <div id="card-reports-tab" class="tab-content hidden animate-fade-in">
-      <div class="glass-card p-6">
-        <h3 class="text-xl font-bold mb-4 text-white">📝 تقارير البطاقات المخصصة</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end p-4 bg-slate-800/50 rounded-lg mb-6">
-          <div>
-            <label for="report-card-filter" class="block text-sm font-medium text-slate-300 mb-1">اختر البطاقة</label>
-            <select id="report-card-filter" class="w-full p-2">
-              <option value="all">جميع البطاقات</option>
-              <option value="snb-card">💳 SNB الأهلي</option>
-              <option value="enbd-card">💳 ENBD الإمارات</option>
-            </select>
-          </div>
-          <div>
-            <label for="report-date-from" class="block text-sm font-medium text-slate-300 mb-1">من تاريخ</label>
-            <input type="date" id="report-date-from" class="w-full p-2">
-          </div>
-          <div>
-            <label for="report-date-to" class="block text-sm font-medium text-slate-300 mb-1">إلى تاريخ</label>
-            <input type="date" id="report-date-to" class="w-full p-2">
-          </div>
-          <button id="apply-card-report-filter" class="w-full px-6 py-2 magical-button text-white rounded-lg font-semibold">🔍 تطبيق الفلتر</button>
-        </div>
-
-        <div class="flex justify-between items-center bg-slate-800 p-3 rounded-lg mb-4">
-            <span class="font-semibold text-slate-300">إجمالي المصاريف المفلترة:</span>
-            <span id="card-report-total" class="font-bold text-xl text-red-400 number-display">0.00 ريال</span>
-        </div>
-        
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="border-b border-slate-700">
-              <tr>
-                <th class="text-right py-3 px-4 font-semibold">تاريخ العملية</th>
-                <th class="text-right py-3 px-4 font-semibold">تاريخ القيد</th>
-                <th class="text-right py-3 px-4 font-semibold">البطاقة</th>
-                <th class="text-right py-3 px-4 font-semibold">المبلغ</th>
-                <th class="text-right py-3 px-4 font-semibold">الفئة</th>
-                <th class="text-right py-3 px-4 font-semibold">الوصف</th>
-              </tr>
-            </thead>
-            <tbody id="card-report-list">
-                <tr><td colspan="6" class="text-center p-8 text-slate-400">الرجاء تحديد نطاق زمني وتطبيق الفلتر لعرض النتائج.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
     <div id="bank-tab" class="tab-content hidden animate-fade-in">
         <div class="glass-card p-6 mb-6">
             <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-white">🏦 إدارة الحساب البنكي</h3><button onclick="app.openEditBankModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">✏️ تعديل الرصيد / تسوية</button></div>
@@ -414,7 +385,7 @@
     var state = getInitialState();
     var selectedYear, selectedMonth;
     var currentEditTransactionId = null;
-    const GEMINI_MODEL = "gemini-1.5-flash"; 
+    const GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"; // CORRECTED MODEL
 
     const GEMINI_PROMPTS = {
       FINANCIAL_ANALYST: `You are an expert financial analyst assistant, "المحلل الذكي". You have full access to the user's financial data for a specific period. Your purpose is to provide detailed, insightful analysis and answer complex questions in Arabic based ONLY on the data provided for that period.
@@ -456,10 +427,7 @@
     function getInitialState() {
         return {
             transactions: [],
-            cards: { 
-                snb: { limit: 26000, dueDay: 5, statementDay: 15 }, 
-                enbd: { limit: 10000, dueDay: 2, statementDay: 7 } 
-            },
+            cards: { snb: { limit: 26000, dueDay: 15 }, enbd: { limit: 10000, dueDay: 18 } },
             bank: { balance: 0 },
             categories: [ { id: 'cat-1', name: 'بقالة', icon: '🛒' }, { id: 'cat-2', name: 'مطاعم', icon: '🍔' }, { id: 'cat-3', name: 'وقود', icon: '⛽' }, { id: 'cat-4', name: 'فواتير', icon: '🧾' }, { id: 'cat-9', name: 'سداد فواتير', icon: '💳' }, { id: 'cat-5', name: 'تسوق', icon: '🛍️' }, { id: 'cat-6', name: 'إيجار', icon: '🏠' },{ id: 'cat-8', name: 'صيدلية', icon: '💊' }, { id: 'cat-7', name: 'أخرى', icon: '💸' }, ],
             installments: [],
@@ -550,7 +518,7 @@
         const calculations = calculateSummaries();
         renderSummary(calculations);
         renderInvestmentTab(calculations);
-        renderCardDetails();
+        renderCardDetails(calculations);
         renderBankDetails(calculations);
         renderTransactionList();
         renderInstallments();
@@ -567,7 +535,6 @@
         document.getElementById('transaction-type').addEventListener('change', handleTransactionTypeChange);
         document.getElementById('search-transactions').addEventListener('input', renderTransactionList);
         document.getElementById('filter-payment-method').addEventListener('change', renderTransactionList);
-        document.getElementById('filter-category').addEventListener('change', renderTransactionList);
         document.getElementById('modal-cancel').addEventListener('click', hideModal);
         document.querySelector('.modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) hideModal(); });
         document.getElementById('backup-file').addEventListener('change', handleRestoreBackup);
@@ -578,7 +545,6 @@
         document.getElementById('suggest-icon-btn').addEventListener('click', handleSuggestCategoryIcon);
         document.getElementById('generate-budget-btn').addEventListener('click', handleGenerateBudget);
         document.getElementById('smart-summary-btn').addEventListener('click', handleSmartSummary);
-        document.getElementById('apply-card-report-filter').addEventListener('click', renderCardReportsTab);
         
         yearFilter.addEventListener('change', handleDateFilterChange);
         monthFilter.addEventListener('change', handleDateFilterChange);
@@ -603,7 +569,6 @@
         const description = document.getElementById('transaction-description').value.trim();
         const totalAmount = parseFloat(document.getElementById('transaction-amount').value);
         const date = document.getElementById('transaction-date').value || new Date().toISOString().split('T')[0];
-        let postingDate = document.getElementById('posting-date').value;
         const categoryId = document.getElementById('transaction-category').value;
         const type = document.getElementById('transaction-type').value;
 
@@ -614,12 +579,6 @@
         if (isNaN(totalAmount) || totalAmount <= 0) {
             showError("الرجاء إدخال مبلغ صحيح.");
             return;
-        }
-
-        if (!postingDate) {
-            const transactionDate = new Date(date);
-            transactionDate.setDate(transactionDate.getDate() + 2); // Default posting date
-            postingDate = transactionDate.toISOString().split('T')[0];
         }
         
         if (paymentMethod.includes('bnpl') && !currentEditTransactionId) {
@@ -643,7 +602,6 @@
                 id: `trans-${Date.now()}`,
                 amount: installmentAmount,
                 date: date,
-                postingDate: postingDate,
                 description: `الدفعة الأولى لـ: ${description}`,
                 paymentMethod: firstPaymentSource,
                 type: 'bnpl-payment',
@@ -657,7 +615,6 @@
             const formData = {
                 amount: totalAmount,
                 date,
-                postingDate,
                 description,
                 paymentMethod,
                 type,
@@ -713,24 +670,16 @@
         const installmentsField = document.getElementById('installments-field');
         const bnplSourceField = document.getElementById('bnpl-payment-source-field');
         const transactionTypeEl = document.getElementById('transaction-type');
-        const postingDateField = document.getElementById('posting-date-field');
 
         if (method.includes('bnpl')) {
             installmentsField.classList.remove('hidden');
             bnplSourceField.classList.remove('hidden');
             transactionTypeEl.value = 'expense';
             transactionTypeEl.disabled = true;
-            postingDateField.classList.remove('hidden');
         } else {
             installmentsField.classList.add('hidden');
             bnplSourceField.classList.add('hidden');
             transactionTypeEl.disabled = false;
-        }
-
-        if (method.includes('-card')) {
-            postingDateField.classList.remove('hidden');
-        } else if (!method.includes('bnpl')) {
-            postingDateField.classList.add('hidden');
         }
     }
 
@@ -785,12 +734,11 @@
                 const paymentSource = document.getElementById('installment-payment-source').value;
                 const billCategory = state.categories.find(c => c.name === 'سداد فواتير' || c.name === '💳 سداد فواتير');
                 const categoryId = billCategory ? billCategory.id : state.categories.find(c => c.name === 'أخرى')?.id || '';
-                const date = new Date().toISOString().split('T')[0];
+
                 const transaction = {
                     id: 'trans-' + Date.now(),
                     amount: installment.installmentAmount,
-                    date: date,
-                    postingDate: date,
+                    date: new Date().toISOString().split('T')[0],
                     description: `سداد القسط ${installment.paid + 1} لـ: ${installment.description}`,
                     paymentMethod: paymentSource,
                     type: 'bnpl-payment',
@@ -1068,12 +1016,10 @@
                 case 'snb-payment':
                     calc.snbPaymentsTotal += t.amount;
                     if (t.paymentMethod === 'mada-bank') calc.bankWithdrawals += t.amount;
-                    else if (t.paymentMethod === 'enbd-card') calc.totalEnbdExpenses += t.amount;
                     break;
                 case 'enbd-payment':
                     calc.enbdPaymentsTotal += t.amount;
                     if (t.paymentMethod === 'mada-bank') calc.bankWithdrawals += t.amount;
-                     else if (t.paymentMethod === 'snb-card') calc.totalSnbExpenses += t.amount;
                     break;
                 case 'bnpl-payment':
                     calc.totalExpenses += t.amount;
@@ -1098,27 +1044,18 @@
         let snbBalance = 0, enbdBalance = 0, bankBalance = 0;
 
         allTransactionsUpToPeriodEnd.forEach(t => {
-            // SNB Card Balance
             if (t.paymentMethod === 'snb-card' && (t.type === 'expense' || t.type === 'bnpl-payment')) {
-                snbBalance += t.amount;
-            } else if (t.type === 'enbd-payment' && t.paymentMethod === 'snb-card') {
                 snbBalance += t.amount;
             }
             if (t.type === 'snb-payment') {
                 snbBalance -= t.amount;
             }
-
-            // ENBD Card Balance
             if (t.paymentMethod === 'enbd-card' && (t.type === 'expense' || t.type === 'bnpl-payment')) {
-                enbdBalance += t.amount;
-            } else if (t.type === 'snb-payment' && t.paymentMethod === 'enbd-card') {
                 enbdBalance += t.amount;
             }
             if (t.type === 'enbd-payment') {
                 enbdBalance -= t.amount;
             }
-
-            // Bank Balance
             if (t.paymentMethod === 'mada-bank') {
                 if (t.type === 'income' || t.type === 'investment-withdrawal') {
                     bankBalance += t.amount;
@@ -1253,7 +1190,6 @@
         currentEditTransactionId = id;
         document.getElementById('transaction-amount').value = transaction.amount;
         document.getElementById('transaction-date').value = transaction.date;
-        document.getElementById('posting-date').value = transaction.postingDate || '';
         document.getElementById('transaction-description').value = transaction.description || '';
         document.getElementById('payment-method').value = transaction.paymentMethod;
         document.getElementById('transaction-type').value = transaction.type;
@@ -1268,25 +1204,10 @@
     function openEditCardModal(cardKey) {
         const card = state.cards[cardKey];
         const title = cardKey === 'snb' ? 'تعديل بطاقة SNB' : 'تعديل بطاقة ENBD';
-        const body = `<div class="space-y-4">
-                        <div><label class="block text-sm font-medium text-slate-300 mb-1">الحد الائتماني (ريال)</label><input type="number" id="edit-card-limit" class="w-full p-2" value="${card.limit}"></div>
-                        <div><label class="block text-sm font-medium text-slate-300 mb-1">يوم إصدار الكشف (1-31)</label><input type="number" id="edit-card-statement-day" class="w-full p-2" value="${card.statementDay}" min="1" max="31"></div>
-                        <div><label class="block text-sm font-medium text-slate-300 mb-1">يوم الاستحقاق (1-31)</label><input type="number" id="edit-card-due-day" class="w-full p-2" value="${card.dueDay}" min="1" max="31"></div>
-                      </div>`;
-        showModal(title, body, { confirmText: 'حفظ التغييرات', onConfirm: () => { 
-            const newLimit = parseFloat(document.getElementById('edit-card-limit').value);
-            const newStatementDay = parseInt(document.getElementById('edit-card-statement-day').value, 10);
-            const newDueDay = parseInt(document.getElementById('edit-card-due-day').value, 10);
-            if (isNaN(newLimit) || newLimit < 0 || isNaN(newStatementDay) || newStatementDay < 1 || newStatementDay > 31 || isNaN(newDueDay) || newDueDay < 1 || newDueDay > 31) { 
-                showError("الرجاء إدخال قيم صالحة."); 
-                return false; 
-            } 
-            state.cards[cardKey].limit = newLimit; 
-            state.cards[cardKey].statementDay = newStatementDay;
-            state.cards[cardKey].dueDay = newDueDay;
-            saveStateToFirebase(); 
-            return true; 
-        } });
+        const calc = calculateSummaries();
+        const currentBalance = calc[cardKey].balance;
+        const body = `<div class="space-y-4"><div><label class="block text-sm font-medium text-slate-300 mb-1">الحد الائتماني (ريال)</label><input type="number" id="edit-card-limit" class="w-full p-2" value="${card.limit}"></div><div><label class="block text-sm font-medium text-slate-300 mb-1">الرصيد المستحق (للتسوية)</label><input type="number" step="0.01" id="edit-card-balance" class="w-full p-2" value="${currentBalance.toFixed(2)}"></div><div><label class="block text-sm font-medium text-slate-300 mb-1">يوم الاستحقاق (1-31)</label><input type="number" id="edit-card-due-day" class="w-full p-2" value="${card.dueDay}" min="1" max="31"></div></div>`;
+        showModal(title, body, { confirmText: 'حفظ التغييرات', onConfirm: () => { const newLimit = parseFloat(document.getElementById('edit-card-limit').value); const newDueDay = parseInt(document.getElementById('edit-card-due-day').value, 10); const newBalance = parseFloat(document.getElementById('edit-card-balance').value); if (isNaN(newLimit) || newLimit < 0 || isNaN(newDueDay) || newDueDay < 1 || newDueDay > 31 || isNaN(newBalance)) { showError("الرجاء إدخال قيم صالحة."); return false; } state.cards[cardKey].limit = newLimit; state.cards[cardKey].dueDay = newDueDay; const adjustment = newBalance - currentBalance; if (Math.abs(adjustment) > 0.01) { const otherCategory = state.categories.find(c => c.name === 'أخرى'); const categoryId = otherCategory ? otherCategory.id : ''; let transaction; if (adjustment > 0) { transaction = { id: `trans-${Date.now()}`, amount: adjustment, date: new Date().toISOString().split('T')[0], description: 'تسوية رصيد البطاقة', paymentMethod: `${cardKey}-card`, type: 'expense', categoryId: categoryId, }; } else { transaction = { id: `trans-${Date.now()}`, amount: Math.abs(adjustment), date: new Date().toISOString().split('T')[0], description: 'تسوية رصيد البطاقة (تخفيض)', paymentMethod: 'reconciliation', type: `${cardKey}-payment`, }; } state.transactions.push(transaction); } saveStateToFirebase(); return true; } });
     }
 
     function openEditBankModal() {
@@ -1318,11 +1239,7 @@
     function getPaymentMethodName(key) { const names = { 'mada-bank': '🏦 بنك', 'cash': '💵 نقدي', 'snb-card': '💳 SNB', 'enbd-card': '💳 ENBD', 'tabby-bnpl': '📱 تابي', 'tamara-bnpl': '📱 تمارا', 'reconciliation': '🔄 تسوية' }; return names[key] || key; }
     function getTransactionTypeName(key) { const names = { 'income': '💰 دخل', 'expense': '💸 مصاريف', 'snb-payment': '💳 سداد SNB', 'enbd-payment': '💳 سداد ENBD', 'bnpl-payment': '📱 سداد قسط', 'investment-deposit': '💹 إيداع استثماري', 'investment-withdrawal': '💹 سحب استثماري' }; return names[key] || key; }
     function showError(message) { showModal("خطأ", `<p>${message}</p>`, { confirmText: 'موافق', hideCancel: true }); }
-    function updateCategoryDropdowns() { 
-        const optionsHTML = state.categories.map(cat => `<option value="${cat.id}">${cat.icon} ${cat.name}</option>`).join('');
-        document.getElementById('transaction-category').innerHTML = optionsHTML; 
-        document.getElementById('filter-category').innerHTML = `<option value="">كل الفئات</option>${optionsHTML}`;
-    }
+    function updateCategoryDropdowns() { document.getElementById('transaction-category').innerHTML = state.categories.map(cat => `<option value="${cat.id}">${cat.icon} ${cat.name}</option>`).join(''); }
     function showLoadingOverlay(show, text = "") { const overlay = document.getElementById('loading-overlay'); document.getElementById('loading-text').textContent = text; if (show) { overlay.classList.add('visible'); } else { overlay.classList.remove('visible'); } }
     
     function promptForFirebaseConfig() {
@@ -1427,7 +1344,7 @@
         doc.save(`financial_report_${selectedYear}_${selectedMonth}.pdf`);
     }
 
-    // --- RENDER FUNCTIONS ---
+    // --- Render Functions ---
     function renderSummary(calc) {
         document.getElementById('snb-current-balance').textContent = `${formatCurrency(calc.snb.balance)} ريال`;
         document.getElementById('snb-remaining-limit').textContent = `${formatCurrency(calc.snb.available)} ريال`;
@@ -1457,58 +1374,22 @@
         document.getElementById('investment-current-value').textContent = `${formatCurrency(state.investments.currentValue)} ريال`;
         document.getElementById('investment-total-invested').textContent = `${formatCurrency(calc.totalInvestmentDeposits)} ريال`;
     }
-    
-    function renderCardDetails() {
-        const snbDetails = calculateStatementDetails('snb');
-        document.getElementById('snb-card-details').innerHTML = generateCardHTML('snb', snbDetails);
 
-        const enbdDetails = calculateStatementDetails('enbd');
-        document.getElementById('enbd-card-details').innerHTML = generateCardHTML('enbd', enbdDetails);
-    }
-    
-    function generateCardHTML(cardKey, details) {
-        const cardName = cardKey === 'snb' ? 'SNB الأهلي' : 'ENBD الإمارات';
-        const transactionRows = (transactions) => {
-            if (!transactions || transactions.length === 0) {
-                return '<tr><td colspan="3" class="text-center text-slate-400 py-3">لا توجد حركات</td></tr>';
-            }
-            return transactions.map(t => `
-                <tr class="transaction-row">
-                    <td class="p-2">${t.postingDate || t.date}</td>
-                    <td class="p-2 truncate" title="${t.description}">${t.description}</td>
-                    <td class="p-2 number-display text-red-400">${formatCurrency(t.amount)}</td>
-                </tr>
-            `).join('');
-        }
-
-        return `
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-xl font-bold text-white">💳 ${cardName}</h3>
-                <button onclick="app.openEditCardModal('${cardKey}')" class="text-sm bg-slate-700/50 hover:bg-slate-700 p-2 rounded-full transition">✏️ تعديل</button>
-            </div>
-            <div class="space-y-3">
-                <div class="bg-slate-800 p-3 rounded-lg">
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-400 text-sm">المبلغ المستحق للكشف الحالي</span>
-                        <span class="font-bold text-2xl text-amber-400 number-display">${formatCurrency(details.statementDueAmount)} ريال</span>
-                    </div>
-                    <div class="flex justify-between items-center text-xs mt-1">
-                        <span class="text-slate-500">تاريخ الاستحقاق:</span>
-                        <span class="font-semibold text-slate-300">${details.dueDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                    </div>
-                </div>
-                 <div class="flex justify-between text-sm"><span>الرصيد الإجمالي المستحق:</span><span class="font-bold number-display">${formatCurrency(details.totalOutstanding)} ريال</span></div>
-                 <div class="flex justify-between text-sm"><span>الحد الائتماني:</span><span class="font-bold number-display">${formatCurrency(state.cards[cardKey].limit)} ريال</span></div>
-            </div>
-            <div class="mt-4">
-                <h4 class="font-semibold text-slate-300 mb-2 border-b border-slate-700 pb-1">المعاملات القادمة (${details.upcomingTransactions.length})</h4>
-                <div class="max-h-32 overflow-y-auto">
-                    <table class="w-full text-xs">
-                        <tbody>${transactionRows(details.upcomingTransactions)}</tbody>
-                    </table>
-                </div>
-            </div>
-        `;
+    function renderCardDetails(calc) {
+        document.getElementById('snb-balance-display').textContent = `${formatCurrency(calc.snb.balance)} ريال`;
+        document.getElementById('snb-limit-display').textContent = `${formatCurrency(state.cards.snb.limit)} ريال`;
+        document.getElementById('snb-available-display').textContent = `${formatCurrency(calc.snb.available)} ريال`;
+        document.getElementById('snb-due-day-display').textContent = `يوم ${state.cards.snb.dueDay}`;
+        document.getElementById('snb-progress-bar').style.width = `${Math.min(100,calc.snb.usagePercentage)}%`;
+        document.getElementById('snb-usage-display').textContent = `${calc.snb.usagePercentage.toFixed(1)}%`;
+        document.getElementById('enbd-balance-display').textContent = `${formatCurrency(calc.enbd.balance)} ريال`;
+        document.getElementById('enbd-limit-display').textContent = `${formatCurrency(state.cards.enbd.limit)} ريال`;
+        document.getElementById('enbd-available-display').textContent = `${formatCurrency(calc.enbd.available)} ريال`;
+        document.getElementById('enbd-due-day-display').textContent = `يوم ${state.cards.enbd.dueDay}`;
+        document.getElementById('enbd-progress-bar').style.width = `${Math.min(100,calc.enbd.usagePercentage)}%`;
+        document.getElementById('enbd-usage-display').textContent = `${calc.enbd.usagePercentage.toFixed(1)}%`;
+        const cardTransactions = getFilteredTransactions().filter(t => t.paymentMethod.includes('-card') || t.type.includes('-payment')).sort((a, b) => new Date(b.date) - new Date(a.date));
+        document.getElementById('cards-transactions-list').innerHTML = cardTransactions.map(t => { const isPayment = t.type.includes('-payment'); const amountClass = isPayment ? 'text-emerald-400' : 'text-red-400'; const cardName = t.paymentMethod.includes('snb') || t.type.includes('snb') ? 'SNB' : 'ENBD'; const typeName = isPayment ? 'سداد' : 'مصروف'; return `<tr class="border-b border-slate-700/50"><td class="p-3">${t.date}</td><td class="p-3 font-semibold">${cardName}</td><td class="p-3">${typeName}</td><td class="p-3 font-semibold ${amountClass} number-display">${isPayment ? '+' : '-'}${formatCurrency(t.amount)}</td><td class="p-3 text-slate-400">${t.description || '-'}</td></tr>`; }).join('');
     }
 
     function renderBankDetails(calc) {
@@ -1522,20 +1403,19 @@
     function renderTransactionList() {
         const searchTerm = document.getElementById('search-transactions').value.toLowerCase();
         const filterMethod = document.getElementById('filter-payment-method').value;
-        const filterCategory = document.getElementById('filter-category').value;
-
         const transactionsToDisplay = getFilteredTransactions().filter(t => { 
             const descriptionMatch = t.description?.toLowerCase().includes(searchTerm) || false; 
             const categoryObject = findCategoryById(t.categoryId); 
             const categoryNameMatch = categoryObject?.name.toLowerCase().includes(searchTerm) || false; 
-            const matchesSearch = searchTerm ? (descriptionMatch || categoryNameMatch) : true;
+            const matchesSearch = descriptionMatch || categoryNameMatch; 
             const matchesFilter = !filterMethod || t.paymentMethod === filterMethod || t.type.replace('-payment', '-card') === filterMethod; 
-            const matchesCategory = !filterCategory || t.categoryId === filterCategory;
-            return matchesSearch && matchesFilter && matchesCategory; 
+            return matchesSearch && matchesFilter; 
         }).sort((a, b) => {
             const dateComparison = new Date(b.date) - new Date(a.date);
-            if (dateComparison !== 0) return dateComparison;
-            return (b.id.slice(6) - a.id.slice(6)); 
+            if (dateComparison !== 0) {
+                return dateComparison;
+            }
+            return b.id.slice(6) - a.id.slice(6); 
         });
 
         document.getElementById('transactions-list').innerHTML = transactionsToDisplay.map(t => { 
@@ -1566,7 +1446,9 @@
             .filter(t => t.paymentMethod.includes('-bnpl') || t.isInstallmentPayment)
             .sort((a, b) => {
                 const dateComparison = new Date(b.date) - new Date(a.date);
-                if (dateComparison !== 0) return dateComparison;
+                if (dateComparison !== 0) {
+                    return dateComparison;
+                }
                 return b.id.slice(6) - a.id.slice(6); 
             });
 
@@ -1590,7 +1472,7 @@
         document.getElementById('categories-list').innerHTML = state.categories.map(cat => `<div class="flex items-center justify-between p-2 bg-slate-700/50 rounded-lg"><span class="font-semibold text-slate-200">${cat.icon} ${cat.name}</span><div><button onclick="app.openEditCategoryModal('${cat.id}')" class="text-slate-400 hover:text-white p-1 text-sm">✏️</button><button onclick="app.handleDeleteCategory('${cat.id}')" class="text-slate-400 hover:text-red-400 p-1 text-sm">🗑️</button></div></div>`).join('');
     }
     
-    function renderCategorySummary(calculations) {
+    function renderCategorySummary() {
         const listEl = document.getElementById('category-summary-list');
         if (!listEl) return;
         const transactions = getFilteredTransactions();
@@ -1620,107 +1502,6 @@
         }).join('');
     }
 
-    function renderCardReportsTab() {
-        const cardFilter = document.getElementById('report-card-filter').value;
-        const dateFrom = document.getElementById('report-date-from').value;
-        const dateTo = document.getElementById('report-date-to').value;
-
-        if (!dateFrom || !dateTo) {
-            document.getElementById('card-report-list').innerHTML = `<tr><td colspan="6" class="text-center p-8 text-slate-400">الرجاء تحديد نطاق زمني وتطبيق الفلتر.</td></tr>`;
-            document.getElementById('card-report-total').textContent = '0.00 ريال';
-            return;
-        }
-
-        const startDate = new Date(dateFrom);
-        const endDate = new Date(dateTo);
-
-        const filtered = state.transactions.filter(t => {
-            const transactionDate = new Date(t.date);
-            const isCardTransaction = t.paymentMethod.includes('-card') || (t.type === 'bnpl-payment' && ['snb-card', 'enbd-card'].includes(t.paymentMethod));
-            const matchesCard = (cardFilter === 'all') || (t.paymentMethod === cardFilter);
-            const matchesDate = transactionDate >= startDate && transactionDate <= endDate;
-            return isCardTransaction && matchesCard && matchesDate;
-        }).sort((a,b) => new Date(b.date) - new Date(a.date));
-
-        const total = filtered.reduce((sum, t) => sum + t.amount, 0);
-        document.getElementById('card-report-total').textContent = `${formatCurrency(total)} ريال`;
-
-        const listEl = document.getElementById('card-report-list');
-        if(filtered.length === 0) {
-            listEl.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-slate-400">لا توجد حركات مطابقة لمعايير البحث.</td></tr>`;
-            return;
-        }
-
-        listEl.innerHTML = filtered.map(t => {
-            const category = findCategoryById(t.categoryId);
-            return `
-                <tr class="border-b border-slate-700/50 transaction-row">
-                    <td class="p-3">${t.date}</td>
-                    <td class="p-3">${t.postingDate || '-'}</td>
-                    <td class="p-3">${getPaymentMethodName(t.paymentMethod)}</td>
-                    <td class="p-3 font-semibold text-red-400 number-display">${formatCurrency(t.amount)}</td>
-                    <td class="p-3">${category ? `${category.icon} ${category.name}` : '-'}</td>
-                    <td class="p-3 text-slate-400">${t.description}</td>
-                </tr>
-            `;
-        }).join('');
-    }
-
-    function calculateStatementDetails(cardKey) {
-        const cardConfig = state.cards[cardKey];
-        const today = new Date();
-        const currentDay = today.getDate();
-        const currentMonth = today.getMonth();
-        const currentYear = today.getFullYear();
-
-        let statementEndDate, statementStartDate, dueDate;
-
-        if (currentDay > cardConfig.statementDay) {
-            // We are in the new cycle, the last statement was this month.
-            statementEndDate = new Date(currentYear, currentMonth, cardConfig.statementDay);
-        } else {
-            // We are before the statement day, so the last statement was last month.
-            statementEndDate = new Date(currentYear, currentMonth - 1, cardConfig.statementDay);
-        }
-        
-        statementStartDate = new Date(statementEndDate.getFullYear(), statementEndDate.getMonth() -1, cardConfig.statementDay + 1);
-        
-        dueDate = new Date(statementEndDate.getFullYear(), statementEndDate.getMonth() + (cardConfig.dueDay < cardConfig.statementDay ? 2 : 1), cardConfig.dueDay);
-
-        const transactionsInStatement = state.transactions.filter(t => {
-            const postingDate = new Date(t.postingDate || t.date); // Fallback to transaction date if posting date is not set
-            const isCorrectCard = t.paymentMethod === `${cardKey}-card` || (t.type === 'bnpl-payment' && t.paymentMethod === `${cardKey}-card`);
-            return isCorrectCard && postingDate >= statementStartDate && postingDate <= statementEndDate;
-        });
-
-        const upcomingTransactions = state.transactions.filter(t => {
-            const postingDate = new Date(t.postingDate || t.date);
-            const isCorrectCard = t.paymentMethod === `${cardKey}-card` || (t.type === 'bnpl-payment' && t.paymentMethod === `${cardKey}-card`);
-            return isCorrectCard && postingDate > statementEndDate;
-        });
-
-        const statementDueAmount = transactionsInStatement.reduce((sum, t) => sum + t.amount, 0);
-
-        // Calculate total outstanding balance up to today for this card
-        const totalOutstanding = state.transactions
-            .filter(t => t.paymentMethod === `${cardKey}-card` && (t.type === 'expense' || t.type === 'bnpl-payment'))
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const totalPayments = state.transactions
-            .filter(t => t.type === `${cardKey}-payment`)
-            .reduce((sum, t) => sum + t.amount, 0);
-
-
-        return {
-            statementDueAmount,
-            dueDate,
-            totalOutstanding: totalOutstanding - totalPayments,
-            transactionsInStatement,
-            upcomingTransactions
-        };
-    }
-
-
     return { init };
   })();
 
@@ -1731,4 +1512,3 @@
 </script>
 </body>
 </html>
-
